@@ -117,10 +117,26 @@ See also:
    endpoint "/issuers/user-deletions" </br>
    Use this endpoint to delete user registered to Carbon Calculator Experience platform.
 
-6. **Update Issuer** <br/>
+6. **Update User** <br/>
+   endpoint "/issuers/users/{userid}" </br>
+   Use this endpoint to update enrolled user information onto Carbon Calculator Experience platform.
+
+7. **Update Issuer** <br/>
    endpoint "/issuers"<br/>
    Use this endpoint to update issuer details onboarded to Carbon Calculator Experience Platform.
    This endpoint is not supported when the Donate feature for your bank is disabled.
+
+8. **Batch Registration of Payment Card** <br/>
+   endpoint "/issuers/users/{userid}/payment-cards"<br/>
+   Use this endpoint to enrol a list of new Payment Cards onto Carbon Calculator Experience platform.
+
+9. **Delete a user** <br/>
+   endpoint "/issuers/users/{userid}"<br/>
+   Use this endpoint to delete user. Payment cards associated with the user will also be deleted.
+
+10. **Delete a payment card** <br/>
+    endpoint "/issuers/payment-cards/{payment_card_id}"<br/>
+    Use this endpoint to delete single Payment Card at a time. Any data associated with a requested paymentCardId will also be deleted permanently.
 
 More details can be found [here](https://developer.mastercard.com/priceless-planet-carbon-tracker/documentation/use-cases/).
 
@@ -134,15 +150,19 @@ More details can be found [here](https://developer.mastercard.com/priceless-plan
           java -jar target/carbon-tracker-0.0.1-SNAPSHOT.jar
         - Above command will start the application and execute all the use cases mentioned in readme file
 
-    2. Use REST API based Client( such as [Insomnia](https://insomnia.rest/download/core/) or [Postman](https://www.postman.com/downloads/))
-        - Run ```mvn spring-boot:run``` command to run the application.
-        - Use any REST API based Client to test the functionality. Below are the APIs exposed by this application ,use locahost:8080 as the Host:<br/>
-          - GET {HOST}/cts/issuers/users/{userid}/dashboards <br/>
-          - GET {HOST}/cts/issuers/users/{userid}/aggregate-carbon-scores <br/>
-          - GET {HOST}/cts/issuers <br/>
-          - POST {HOST}/cts/issuers/users <br/>
-          - PUT  {HOST}/cts/issuers <br/>
-          - POST  {HOST}/cts/issuers/user-deletions <br/>
+   2. Use REST API based Client( such as [Insomnia](https://insomnia.rest/download/core/) or [Postman](https://www.postman.com/downloads/))
+      - Run ```mvn spring-boot:run``` command to run the application.
+      - Use any REST API based Client to test the functionality. Below are the APIs exposed by this application ,use locahost:8080 as the Host:<br/>
+        - GET {HOST}/cts/issuers/users/{userid}/dashboards <br/>
+        - GET {HOST}/cts/issuers/users/{userid}/aggregate-carbon-scores <br/>
+        - GET {HOST}/cts/issuers <br/>
+        - POST {HOST}/cts/issuers/users <br/>
+        - PUT {HOST}/cts/issuers/users/{userid} <br/>
+        - PUT  {HOST}/cts/issuers <br/>
+        - POST  {HOST}/cts/issuers/user-deletions <br/>  
+        - POST {HOST}/cts/issuers/users/{userid}/payment-cards <br/>
+        - DELETE {HOST}/cts/issuers/payment-cards/{payment_card_id} <br/>
+        - DELETE {HOST}/cts/issuers/users/{userid} <br/>
 
 
 ## Service Documentation <a name="documentation"></a>

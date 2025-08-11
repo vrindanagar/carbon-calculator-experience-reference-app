@@ -5,6 +5,7 @@ import com.mastercard.developers.carbontracker.service.GetDashboardService;
 import com.mastercard.developers.carbontracker.service.IssuerService;
 import com.mastercard.developers.carbontracker.service.UpdateUserService;
 import com.mastercard.developers.carbontracker.service.UserRegistrationService;
+import com.mastercard.developers.carbontracker.service.BatchPaymentCardRegistrationService;
 import io.swagger.annotations.ApiParam;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -18,6 +19,8 @@ import org.openapitools.client.model.IssuerProfileDetails;
 import org.openapitools.client.model.UpdateUserProfile;
 import org.openapitools.client.model.UserProfile;
 import org.openapitools.client.model.UserReference;
+import org.openapitools.client.model.PaymentCardEnrolment;
+import org.openapitools.client.model.PaymentCard;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,6 +43,9 @@ import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DELE
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.GET_ISSUER;
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.UPDATE_ISSUER;
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.UPDATE_USER;
+import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.BATCH_PAYMENT_CARDS_REGISTRATION;
+import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DELETE_USER_MULTI_CARD;
+import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DELETE_PAYMENT_CARD;
 
 @RestController
 @Slf4j
@@ -52,12 +60,15 @@ public class IssuerController {
 
   private final UpdateUserService updateUserService;
 
+  private final BatchPaymentCardRegistrationService batchPaymentCardRegistrationService;
+
   @Autowired
-  public IssuerController(IssuerService issuerService, UserRegistrationService userRegistrationService, GetDashboardService getDashboardService, UpdateUserService updateUserService) {
+  public IssuerController(IssuerService issuerService, UserRegistrationService userRegistrationService, GetDashboardService getDashboardService, UpdateUserService updateUserService, BatchPaymentCardRegistrationService batchPaymentCardRegistrationService) {
     this.issuerService = issuerService;
     this.userRegistrationService = userRegistrationService;
     this.getDashboardService = getDashboardService;
     this.updateUserService = updateUserService;
+    this.batchPaymentCardRegistrationService = batchPaymentCardRegistrationService;
   }
 
   @GetMapping(DASHBOARDS)
@@ -101,5 +112,26 @@ public class IssuerController {
     IssuerProfileDetails issuerProfileDetails = issuerService.getIssuer();
     return new ResponseEntity<>(issuerProfileDetails, HttpStatus.OK);
   }
+
+  @PostMapping(BATCH_PAYMENT_CARDS_REGISTRATION)
+  public ResponseEntity< List<PaymentCardEnrolment>> batchRegisterPaymentCards(@PathVariable("userid")  String userId, @Valid @RequestBody List<PaymentCard> paymentCard) throws ServiceException {
+    List<PaymentCardEnrolment> paymentCardEnrolment = batchPaymentCardRegistrationService.batchRegisterPaymentCards(userId, paymentCard);
+    return ResponseEntity.ok(paymentCardEnrolment);
+  }
+
+  @DeleteMapping(DELETE_USER_MULTI_CARD)
+  public ResponseEntity<Void> deleteUserAndPaymentCards(@PathVariable("userid") String userId) throws ServiceException  {
+    issuerService.deleteUserAndPaymentCards(userId);
+    return ResponseEntity.accepted().build();
+  }
+
+  @DeleteMapping(DELETE_PAYMENT_CARD)
+  public ResponseEntity<Void> deletePaymentCard(@PathVariable("payment_card_id") String paymentCardId) throws ServiceException  {
+
+    issuerService.deletePaymentCard(paymentCardId);
+
+    return ResponseEntity.accepted().build();
+  }
+
 
 }

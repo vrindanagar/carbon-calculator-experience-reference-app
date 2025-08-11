@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(MockitoExtension.class)
@@ -155,6 +157,48 @@ class IssuerServiceImplTest {
     when(issuerApiForNonEncryptedPayload.getIssuer()).thenThrow(api);
     Assertions.assertThrows(Exception.class, () -> issuerService.getIssuer());
 
+  }
+
+  @Test
+  @DisplayName("deletePaymentCard")
+  void testDeletePaymentCard() throws Exception {
+    issuerApiForNonEncryptedPayload = mock(IssuerApi.class);
+    ReflectionTestUtils.setField(issuerService, "issuerApiForNonEncryptedPayload", issuerApiForNonEncryptedPayload);
+
+    doNothing().when(issuerApiForNonEncryptedPayload).deletePaymentCard(anyString());
+    Assertions.assertDoesNotThrow(() -> issuerService.deletePaymentCard("payment-card-1"));
+  }
+
+  @Test
+  @DisplayName("deletePaymentCard throws exception")
+  void testDeletePaymentCardThrowsException() throws Exception {
+    issuerApiForNonEncryptedPayload = mock(IssuerApi.class);
+    ReflectionTestUtils.setField(issuerService, "issuerApiForNonEncryptedPayload", issuerApiForNonEncryptedPayload);
+
+    ApiException api = new ApiException("ApiException", null, 400, null, gson.toJson(getErrorDetail()));
+    doThrow(api).when(issuerApiForNonEncryptedPayload).deletePaymentCard(anyString());
+    Assertions.assertThrows(Exception.class, () -> issuerService.deletePaymentCard("payment-card-1"));
+  }
+
+  @Test
+  @DisplayName("deleteUserAndPaymentCards")
+  void testDeleteUserAndPaymentCards() throws Exception {
+    issuerApiForNonEncryptedPayload = mock(IssuerApi.class);
+    ReflectionTestUtils.setField(issuerService, "issuerApiForNonEncryptedPayload", issuerApiForNonEncryptedPayload);
+
+    doNothing().when(issuerApiForNonEncryptedPayload).deleteUserAndPaymentCards(anyString());
+    Assertions.assertDoesNotThrow(() -> issuerService.deleteUserAndPaymentCards("user-1"));
+  }
+
+  @Test
+  @DisplayName("deleteUserAndPaymentCards throws exception")
+  void testDeleteUserAndPaymentCardsThrowsException() throws Exception {
+    issuerApiForNonEncryptedPayload = mock(IssuerApi.class);
+    ReflectionTestUtils.setField(issuerService, "issuerApiForNonEncryptedPayload", issuerApiForNonEncryptedPayload);
+
+    ApiException api = new ApiException("ApiException", null, 400, null, gson.toJson(getErrorDetail()));
+    doThrow(api).when(issuerApiForNonEncryptedPayload).deleteUserAndPaymentCards(anyString());
+    Assertions.assertThrows(Exception.class, () -> issuerService.deleteUserAndPaymentCards("user-1"));
   }
 
   private ErrorWrapper getErrorDetail() {

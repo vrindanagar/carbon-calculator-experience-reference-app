@@ -21,4 +21,9 @@ public interface IssuerService {
 
   IssuerProfileDetails getIssuer() throws ServiceException;
 
+  void deletePaymentCard(final String paymentCardId) throws ServiceException;
+
+  void deleteUserAndPaymentCards(String userId) throws ServiceException;
+
+
 }

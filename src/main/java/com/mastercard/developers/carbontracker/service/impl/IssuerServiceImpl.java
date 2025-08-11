@@ -101,4 +101,30 @@ public class IssuerServiceImpl implements IssuerService {
 
     return issuerProfileDetails;
   }
+
+  @Override
+  public void deletePaymentCard(String paymentCardId) throws ServiceException {
+
+    try {issuerApiForNonEncryptedPayload.deletePaymentCard(paymentCardId);
+    } catch (ApiException e) {
+      log.error("Exception occurred while deleting payment card id {}", e.getResponseBody());
+
+      throw new ServiceException(e.getMessage(), deserializeErrors(e.getResponseBody()));
+    }
+
+  }
+  @Override
+  public void deleteUserAndPaymentCards(String userId) throws ServiceException {
+
+    try {
+      issuerApiForNonEncryptedPayload.deleteUserAndPaymentCards(userId);
+    } catch (ApiException e) {
+      log.error("Exception occurred while deleting user id {}", e.getResponseBody());
+
+      throw new ServiceException(e.getMessage(), deserializeErrors(e.getResponseBody()));
+    }
+
+  }
+
+
 }

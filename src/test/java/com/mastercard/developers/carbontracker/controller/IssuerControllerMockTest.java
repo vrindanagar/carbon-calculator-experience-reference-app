@@ -34,6 +34,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DELETE_USER_MULTI_CARD;
+import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DELETE_PAYMENT_CARD;
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.ADD_USER;
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.AGGREGATE_CARBON_SCORE;
 import static com.mastercard.developers.carbontracker.util.ServiceEndpoints.DASHBOARDS;
@@ -45,6 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -214,5 +218,45 @@ class IssuerControllerMockTest {
     String actual = mvcResult.getResponse().getContentAsString();
     assertNotNull(actual);
   }
+  @Test
+  @DisplayName("Test deleteUser")
+  void testDeleteUser() throws Exception {
+    String userId1 = "1653fbe5-4d70-4595-a3fa-a52249a2b6d3";
+
+    List<String> stringList = new ArrayList<>();
+    stringList.add(userId1);
+
+    String request = objectMapper.writeValueAsString(stringList);
+
+    doNothing().when(issuerService).deleteUserAndPaymentCards(anyString());
+
+    MvcResult mvcResult = mockMvc
+            .perform(MockMvcRequestBuilders.delete(DELETE_USER_MULTI_CARD, userId1).content(request)
+                    .contentType("application/json")
+                    .header(X_OPENAPI_CLIENTID, CLIENTID))
+            .andExpect(status().isAccepted()).andReturn();
+
+    String actual = mvcResult.getResponse().getContentAsString();
+    assertNotNull(actual);
+  }
+
+  @Test
+  @DisplayName("Delete payment card")
+  void testDeletePaymentCard() throws Exception {
+    String paymentCardId = "83c0711e-1851-4771-950a-055dded7f168";
+
+    doNothing().when(issuerService).deletePaymentCard(anyString());
+
+    MvcResult mvcResult = mockMvc
+            .perform(MockMvcRequestBuilders.delete(DELETE_PAYMENT_CARD, paymentCardId)
+                    .contentType("application/json"))
+            .andExpect(status().isAccepted()).andReturn();
+
+    String actual = mvcResult.getResponse().getContentAsString();
+    assertNotNull(actual);
+
+    verify(issuerService).deletePaymentCard(paymentCardId);
+  }
+
 
 }

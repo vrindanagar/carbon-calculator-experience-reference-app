@@ -45,7 +45,7 @@ paths:
         - Issuer
       summary: Fetches the Issuer details.
       description: >-
-        Allows fetching the Issuer details onboarded on the Carbon Calculator
+        Allows for the fetching of the details of the Issuer onboarded onto the Carbon Calculator
         Experience. This API returns the Issuer's available details like a supported account range, currency code, and country code along with the color theme.
       operationId: getIssuer
       responses:
@@ -135,7 +135,28 @@ paths:
           $ref: '#/components/responses/IssuerNotFoundError'
         "415":
           $ref: '#/components/responses/UnsupportedMediaTypeError'
-
+    delete:
+      tags:
+        - Issuer
+      summary: delete a user
+      description:
+        Allows a registered Service Provider to delete user.
+        Payment cards associated with the user will also be deleted.
+        On a successful response from the Server, the Service Provider should remove all the requested users and associated payment
+        cards from the system.
+        Data deletion will be initiated immediately upon receipt of a request from the Service Provider.
+      operationId: DeleteUserAndPaymentCards
+      parameters:
+        - $ref: '#/components/parameters/UserID'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        "400":
+          $ref: '#/components/responses/DeleteUserByIdBadRequestError'
+        "401":
+          $ref: '#/components/responses/DeleteUserByIdUnauthorisedError'
+        "404":
+          $ref: '#/components/responses/DeleteUserByIdNotFoundError'
   '/issuers/users/{userid}/dashboards':
     get:
       tags:
@@ -157,16 +178,14 @@ paths:
           $ref: '#/components/responses/DashboardsUnauthorisedError'
         '404':
           $ref: '#/components/responses/DashboardNotFoundError'
-  '/issuers/users/{userid}/aggregate-carbon-scores':
+  /issuers/users/{userid}/aggregate-carbon-scores:
     get:
       tags:
         - Issuer
       summary: >-
-        Fetches monthly aggregate carbon score for the transactions made for the
-        current month.
+        Fetch aggregate carbon score for a single or multiple payment cards. The aggregate can be requested monthly.
       description: >-
-        Allows Issuers to retrieve an aggregate carbon footprint for the
-        transactions done by a user.
+        Allows Issuers to retrieve an aggregate carbon score for payment cards and aggregates the same on monthly basis.
       operationId: getAggregateCarbonScore
       parameters:
         - $ref: '#/components/parameters/UserID'
@@ -179,17 +198,41 @@ paths:
           $ref: '#/components/responses/AggregateCarbonScoreUnauthorisedError'
         '404':
           $ref: '#/components/responses/AggregateCarbonScoreNotFoundError'
+  /issuers/users/{userid}/payment-cards:
+    post:
+      tags:
+        - Issuer
+      summary: Batch Registration of Payment Cards
+      description: >-
+        Allows a registered Service Provider to add a list of new Payment Cards **(at most maximum of 10 payment cards)**
+        to its profile. This endpoint uses [Mastercard payload
+        encryption](https://developer.mastercard.com/platform/documentation/security-and-authentication/securing-sensitive-data-using-payload-encryption/#mastercard-encryption). Refer to the [Payload
+        Encryption](https://developer.mastercard.com/platform/documentation/security-and-authentication/securing-sensitive-data-using-payload-encryption/)
+        section for implementation details.
+      operationId: batchRegisterPaymentCards
+      parameters:
+        - $ref: '#/components/parameters/UserID'
+      x-mastercard-api-encrypted: true
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentCards'
+      responses:
+        '200':
+          $ref: '#/components/responses/PaymentCardEnrolments'
+        '400':
+          $ref: '#/components/responses/PaymentCardEnrolmentsBadRequestError'
+        '403':
+          $ref: '#/components/responses/ServiceProviderICAValidationError'
+        '404':
+          $ref: '#/components/responses/IssuerNotFoundError'
   /issuers/user-deletions:
     post:
       tags:
         - Issuer
       summary: Delete one or more users.
       description: >-
-        <ul><li>Allows a registered Service Provider to delete one or more
-        users.</li> <li>Payment cards associated with the user will also be
-        deleted.</li> <li>On a successful response from the Server, the Service
-        Provider should remove all the requested users and associated payment
-        cards from the system.</li></ul>
+        Allows a registered Service Provider to delete one or more
+                users. Payment cards associated with the user will also be
+                deleted. On a successful response from the Server, the Service         Provider should remove all the requested users and associated payment cards from the system.
       operationId: deleteUsers
       requestBody:
         $ref: '#/components/requestBodies/UserIDs'
@@ -204,8 +247,135 @@ paths:
           $ref: '#/components/responses/DeleteUserNotFoundError'
         '415':
           $ref: '#/components/responses/UnsupportedMediaTypeError'
+  /issuers/payment-cards/{payment_card_id}:
+    delete:
+      tags:
+        - Issuer
+      summary: Delete payment card.
+      description:
+        Allows a registered Service Provider to delete single Payment Card at a time.
+        Any data associated with a requested paymentCardId
+        will also be deleted permanently.
+        On the successful response from the server, a Service Provider should remove all
+        the requested paymentCardIds from the system.
+        Once a request has been received from a Service Provider, data deletion
+        will happen immediately.
+      operationId: deletePaymentCard
+      parameters:
+        - $ref: '#/components/parameters/PaymentCardId'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        '400':
+          $ref: '#/components/responses/PaymentCardDeletionsBadRequestError'
+        '404':
+          $ref: '#/components/responses/PaymentCardByIdNotFoundError'
+
 components:
+  headers:
+    Location:
+      description: The URL to check on status of resource
+      schema:
+        type: string
   requestBodies:
+    PaymentCards:
+      required: true
+      description: List of payment cards to be enroled.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PaymentCard'
+            minItems: 1
+            maxItems: 10
+            example:
+              - fpan: '5455029300268351'
+                cardBaseCurrency: EUR
+                cardholderName: "John Doe"
+                expiryInfo: {
+                  "month": "10",
+                  "year": "2024"
+                }
+                billingAddress: {
+                  "countryCode": "Paris",
+                  "locality": "Rly Station",
+                  "postalCode": "11746",
+                  "state": "Europe",
+                  "city": "Paris",
+                  "line1": "12 Mayfair Street",
+                  "line2": "Main Road",
+                  "line3": "Snake Hill Ave",
+                  "type": "work"
+                }
+                defaultPaymentMethod: N
+              - fpan: '5455023979760762'
+                cardBaseCurrency: USD
+
+                cardholderName: "JK Ken"
+                expiryInfo: {
+                  "month": "11",
+                  "year": "2027"
+                }
+                billingAddress: {
+                  "countryCode": "USA",
+                  "locality": "Rly Station",
+                  "postalCode": "11746",
+                  "state": "New York",
+                  "city": "Brooklyn",
+                  "line1": "83 Mayfair Street",
+                  "line2": "Main Road",
+                  "line3": "Snake Hill Ave",
+                  "type": "work"
+                }
+                defaultPaymentMethod: Y
+              - fpan: '5455023979762834'
+                cardBaseCurrency: USD
+
+
+                cardholderName: "JK Ken"
+                expiryInfo: {
+                  "month": "10",
+                  "year": "2024"
+                }
+                billingAddress: {
+                  "countryCode": "USA",
+                  "locality": "Rly Station",
+                  "postalCode": "11746",
+                  "state": "New York",
+                  "city": "Brooklyn",
+                  "line1": "83 Mayfair Street",
+                  "line2": "Main Road",
+                  "line3": "Snake Hill Ave",
+                  "type": "work"
+                }
+                defaultPaymentMethod: N
+              - fpan: '5455023979762824'
+                cardBaseCurrency: USD
+                cardholderName: "JK Ken"
+                expiryInfo: {
+                  "month": "10",
+                  "year": "2024"
+                }
+                billingAddress: {
+                  "countryCode": "USA",
+                  "locality": "Rly Station",
+                  "postalCode": "11746",
+                  "state": "New York",
+                  "city": "Brooklyn",
+                  "line1": "83 Mayfair Street",
+                  "line2": "Main Road",
+                  "line3": "Snake Hill Ave",
+                  "type": "work"
+                }
+                defaultPaymentMethod: N
+    PaymentCardsEncryptedPayload:
+      description: User's Personal and Card information needs to be registered to the Carbon Calculator Experience API. This endpoint uses Mastercard payload encryption. Please refer to the **[Payload Encryption](https://mstr.cd/2UPfda0)** page for implementation details.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EncryptedPayload'
     UserProfile:
       description:
         User's Personal and Card information needs to be registered to the
@@ -251,6 +421,110 @@ components:
           schema:
             $ref: '#/components/schemas/UpdateUserProfile'
   schemas:
+    PaymentCard:
+      title: PaymentCard
+      type: object
+      description: >-
+        The request object for registering a new Payment Card. This object will
+        be encrypted before sending it to the server.
+      required:
+        - fpan
+        - cardBaseCurrency
+        - cardholderName
+        - expiryInfo
+        - billingAddress
+      properties:
+        fpan:
+          type: string
+          minLength: 16
+          maxLength: 16
+          pattern: '^\d{16}$'
+          description: Original payment card number in full.
+          example: '5344035171229750'
+        cardBaseCurrency:
+          $ref: '#/components/schemas/CurrencyCode'
+        cardholderName:
+          type: string
+          description: Name of the card-holder. (format- First Name Last Name)
+          minLength: 1
+          maxLength: 100
+          example: John Doe
+        defaultPaymentMethod:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          default: 'N'
+          description: 'Indicates if this payment method is the default.'
+          example: 'N'
+        expiryInfo:
+          $ref: '#/components/schemas/CardExpiry'
+        billingAddress:
+          $ref: '#/components/schemas/Address'
+      example:
+        fpan: '5344035171229750'
+        cardBaseCurrency: EUR
+
+    PaymentCardId:
+      type: string
+      minLength: 36
+      maxLength: 36
+      pattern: ^[0-9A-Fa-f\-]{36}
+      x-pattern-message: 'Provided paymentcardId is not valid, Please check and provide valid Unique Id.'
+      description: Unique identifier for a payment card.
+      example: 'c5d88571-ac15-465a-a0d8-1ad1327b9a06'
+    PaymentCardEnrolments:
+      title: PaymentCardEnrolments
+      type: array
+      minItems: 1
+      maxItems: 10
+      description: >-
+        List of payment card enrolments corresponding to each of the payment
+        cards. This information should be used to identify the success and
+        failure enrolments and take appropriate next steps.
+      items:
+        $ref: '#/components/schemas/PaymentCardEnrolment'
+    PaymentCardEnrolment:
+      title: PaymentCardEnrolment
+      type: object
+      description: The response object which contains Payment Card information.
+      properties:
+
+        last4fpan:
+          type: string
+          minLength: 4
+          maxLength: 4
+          pattern: '^\d{4}'
+          description: >-
+            Last 4 digits of a payment card number will be present only if the
+            card number in the request is valid.
+          example: '8351'
+        status:
+          type: string
+          minLength: 6
+          maxLength: 7
+          description: >-
+            Status of a Payment Card on the server. Possible values are ACTIVE &
+            DELETED.
+          example: ACTIVE
+        paymentCardId:
+          $ref: "#/components/schemas/PaymentCardId"
+        defaultPaymentMethod:
+          type: string
+          minLength: 1
+          maxLength: 1
+          enum:
+            - 'Y'
+            - 'N'
+          default: 'N'
+          description: 'Indicates if this payment method is the default.'
+          example: 'N'
+        errorCode:
+          title: errorCode
+          type: string
+          minLength: 10
+          maxLength: 30
+          example: INVALID_FPAN
     IssuerProfileDetails:
       title: IssuerProfileDetails
       type: object
@@ -769,7 +1043,62 @@ components:
         "linkFontType":"Mark Offc For MC",
         "linkFontSize":"15px"
       }
+    EncryptedPayload:
+      title: EncryptedPayload
+      type: object
+      description: The request object for securely transfering sensitive information from client to server.
+      required:
+        - encryptedData
+        - encryptedKey
+        - oaepHashingAlgorithm
+        - publicKeyFingerprint
+        - iv
+      properties:
+        encryptedData:
+          type: string
+          minLength: 128
+          maxLength: 54000
+          description: 'Hex encoded encrypted data, encrypted by the ephemeral AES key using CBC (IV as provided in ''iv'', or zero if none provided) and PKCS#7 padding. The JSON object being encrypted will be defined in the context of the API call.'
+          example: 'bb42e8e44b0e0536804b731df966d242a8182c2f21f5772a161dca9685ee76f07d23e40fa8fb9938169458e0ca659f477291f0153754687da2c4570d9d2f8bde'
+        encryptedKey:
+          type: string
+          minLength: 512
+          maxLength: 512
+          description: 'One-time use hex encoded 256-bit AES key encrypted by the Mastercard public key (as identified by ''publicKeyFingerprint'') using the OAEP or RSA Encryption Standard PKCS#1 v1.5 (depending on the value of ''oaepHashingAlgorithm''.'
+          example: '516fff52106b789d908b491d1a78ec7749dddf8436eef3b770fcc04aa0e2cd912c55159a6cc99fdebce2d3a085cb66d36ba0e050fce134bdee6571abf3d787f12671ff5c5a8fea9000b1143a12f43933f25c8f3a79086d4524b7efd9c24a8914e6625f9509e5c6b913a35b06b6f81d47ba44abb5c5d0f14d1d8ceddad17afdf5215d9a4e1f3152898ea83d767105772bb87a979f1bfe0ba86d53f6727541bd459da782358d187b6317b34c5888fcd042e03fb7d4dd09dd4cee7fd4edd1655cdeabda31deb057a952cb3a96429850d37cea1a5c9c4266f0971962840042c7a7dade6c1605349671a5e5f6887b7467b3a16404e0e5f5db7104a2fd9096a3986a2b'
+        oaepHashingAlgorithm:
+          type: string
+          minLength: 6
+          maxLength: 6
+          description: 'The hashing algorithm used with the OAEP scheme. Must be one of SHA256 & SHA512.'
+          example: 'SHA256'
+        publicKeyFingerprint:
+          type: string
+          minLength: 64
+          maxLength: 1000
+          description: 'The public key fingerprint of the key used by the RSA-OAEP encryption scheme.'
+          example: '31d5808a1994dd6c142afe2866274df756bf685970106ea5b2a73d587104f17e'
+        iv:
+          type: string
+          minLength: 32
+          maxLength: 32
+          description: 'The hex encoded initialization vector used when encrypting data using the one-time use AES key. Must be exactly 16 bytes if provided (32 character hex string) to match the block size.'
+          example: '6d3a83b3fb0db252b0bd9e3bbb7f2ca2'
+      example:
+        encryptedData: 'bb42e8e44b0e0536804b731df966d242a8182c2f21f5772a161dca9685ee76f07d23e40fa8fb9938169458e0ca659f477291f0153754687da2c4570d9d2f8bde'
+        encryptedKey: '516fff52106b789d908b491d1a78ec7749dddf8436eef3b770fcc04aa0e2cd912c55159a6cc99fdebce2d3a085cb66d36ba0e050fce134bdee6571abf3d787f12671ff5c5a8fea9000b1143a12f43933f25c8f3a79086d4524b7efd9c24a8914e6625f9509e5c6b913a35b06b6f81d47ba44abb5c5d0f14d1d8ceddad17afdf5215d9a4e1f3152898ea83d767105772bb87a979f1bfe0ba86d53f6727541bd459da782358d187b6317b34c5888fcd042e03fb7d4dd09dd4cee7fd4edd1655cdeabda31deb057a952cb3a96429850d37cea1a5c9c4266f0971962840042c7a7dade6c1605349671a5e5f6887b7467b3a16404e0e5f5db7104a2fd9096a3986a2b'
+        oaepHashingAlgorithm: 'SHA256'
+        publicKeyFingerprint: '31d5808a1994dd6c142afe2866274df756bf685970106ea5b2a73d587104f17e'
+        iv: '6d3a83b3fb0db252b0bd9e3bbb7f2ca2'
   parameters:
+    PaymentCardId:
+      name: payment_card_id
+      in: path
+      description: Unique ID provided in the response while registering a payment card.
+      required: true
+      example: 83c0711e-1851-4771-950a-055dded7f168
+      schema:
+        $ref: '#/components/schemas/PaymentCardId'
     UserID:
       in: path
       name: userid
@@ -789,6 +1118,111 @@ components:
       schema:
         $ref: '#/components/schemas/Lang'
   responses:
+    PaymentCardByIdNotFoundError:
+      description: >-
+        This response code is returned when the server cannot find the paymentcard which
+        has been used to call this API.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            PaymentCardByIdNotFoundError:
+              $ref: '#/components/examples/PaymentCardByIdNotFoundError'
+            PaymentCardAlreadyInTerminationError:
+              $ref: '#/components/examples/PaymentCardAlreadyInTerminationError'
+    Accepted:
+      description: Accepted
+      headers:
+        Location:
+          $ref: "#/components/headers/Location"
+    DeleteUserByIdBadRequestError:
+      description: This response code is returned when a request is invalid or data in the request is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            InvalidUserIdError:
+              $ref: '#/components/examples/InvalidDeleteUserIdError'
+    DeleteUserByIdUnauthorisedError:
+      description: This response code is returned when a user is terminated or inactive.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            IssuerInactiveError:
+              $ref: '#/components/examples/IssuerInactiveError'
+            IssuerSuspendedError:
+              $ref: '#/components/examples/IssuerSuspendedError'
+            IssuerTerminatedError:
+              $ref: '#/components/examples/IssuerTerminatedError'
+            UserTerminatedError:
+              $ref: '#/components/examples/UserTerminatedError'
+    DeleteUserByIdNotFoundError:
+      description: This response code is returned when a user or Issuer is not present.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            IssuerNotFoundError:
+              $ref: '#/components/examples/IssuerNotFoundError'
+            UserNotFoundError:
+              $ref: '#/components/examples/UserNotFoundError'
+    PaymentCardEnrolments:
+      description: >-
+        The response object that contains the list of Payment Cards information
+        after batch registration.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentCardEnrolments'
+          examples:
+            PaymentCardEnrolments:
+              $ref: '#/components/examples/PaymentCardEnrolmentsExample'
+    PaymentCardEnrolmentsBadRequestError:
+      description: >-
+        This response code is returned when a request is invalid, or data in the
+        request is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            PaymentCardEnrolmentsRequestValidationError:
+              $ref: '#/components/examples/RegisterPaymentCardRequestValidationError'
+            PaymentCardEnrolmentsRequestDecryptionError:
+              $ref: '#/components/examples/RegisterPaymentCardRequestDecryptionError'
+            InvalidCardHolderNameError:
+              $ref: '#/components/examples/InvalidCardHolderNameError'
+            InvalidCardBaseCurrencyError:
+              $ref: '#/components/examples/InvalidCardBaseCurrencyError'
+            InvalidCardExpiryInfoError:
+              $ref: '#/components/examples/InvalidCardExpiryInfoError'
+    ServiceProviderICAValidationError:
+      description: This response code is returned when activity ICA validation is enabled and ICA of that service provider is unvalidated.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorWrapper'
+          examples:
+            ServiceProviderICAValidationError:
+              $ref: '#/components/examples/ServiceProviderICAValidationError'
+    PaymentCardDeletionsBadRequestError:
+      description: >-
+        This response code is returned when either a request is invalid or one
+        or more paymentCardIds are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorWrapper"
+          examples:
+            PaymentCardDeletionsRequestValidationError:
+              $ref: "#/components/examples/PaymentCardDeletionsRequestValidationError"
+            PaymentCardDeletionsDefaultCardIdError:
+              $ref: "#/components/examples/PaymentCardDeletionsDefaultCardIdError"
     Dashboard:
       description: >-
         The response object after decryption contains a short-lived URL along with an authentication token and its expiry time.
@@ -1083,6 +1517,134 @@ components:
             InvalidUserIdLengthError:
               $ref: '#/components/examples/InvalidUserIdLengthError'
   examples:
+    PaymentCardDeletionsDefaultCardIdError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: INVALID_REQUEST_PARAMETER
+              Description: >-
+                The payment card in the request is set as default, set a different payment card as default to delete this payment card.
+              Recoverable: true
+              Details: 'The payment card in the request is set as default, set a different payment card as default to delete this payment card.'
+    PaymentCardDeletionsRequestValidationError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: INVALID_REQUEST_PARAMETER
+              Description: >-
+                One of the request parameters is invalid, try again with the correct
+                request.
+              Recoverable: false
+              Details: "Provided paymentcardId is not valid, Please check and provide valid Unique Id."
+    InvalidCardExpiryInfoError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: INVALID_REQUEST_PARAMETER
+              Description: >-
+                One of the request parameters is invalid, try again with correct
+                request.
+              Recoverable: false
+              Details: >-
+                "Card Expiry must be in the format \"MM\" for Month and \"YYYY\" for year.
+    InvalidCardBaseCurrencyError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: INVALID_REQUEST_PARAMETER
+              Description: >-
+                One of the request parameters is invalid, try again with correct
+                request.
+              Recoverable: false
+              Details: >-
+                "CardBaseCurrency must be in the format: \"XYZ\""
+    RegisterPaymentCardRequestDecryptionError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: CRYPTO_ERROR
+              Description: >-
+                We are unable to decipher your request, kindly verify your
+                request before trying again. If the problem persists then reach
+                out to your Mastercard associate.
+              Recoverable: false
+              Details: ''
+    RegisterPaymentCardRequestValidationError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: INVALID_REQUEST_PARAMETER
+              Description: >-
+                One of the request parameters is invalid, try again with the correct
+                request.
+              Recoverable: false
+              Details: ''
+    PaymentCardEnrolmentsExample:
+      summary: PaymentCardEnrolments
+      value:
+        - paymentCardId: 'c5d88571-ac15-465a-a0d8-1ad1327b9a06'
+          last4fpan: '8351'
+          status: ACTIVE
+          defaultPaymentMethod: N
+
+        - paymentCardId: '328b62d4-287c-4c9f-a05d-6d4a67f208d8'
+          last4fpan: '0762'
+          status: ACTIVE
+          defaultPaymentMethod: Y
+
+        - paymentCardId: '328b62d4-287c-4c9f-a05d-6d4a67f208d8'
+          last4fpan: '2834'
+          status: ACTIVE
+          defaultPaymentMethod: N
+
+        - paymentCardId: '838b62d4-287c-4c9f-a05d-6d4a67f208d8'
+          last4fpan: '2824'
+          errorCode: INVALID_FPAN
+          defaultPaymentMethod: N
+    InvalidDeleteUserIdError:
+      value:
+        Errors:
+          Error:
+            - Source: 'CARBON CALCULATOR EXPERIENCE'
+              ReasonCode: 'INVALID_REQUEST_PARAMETER'
+              Description: 'One of the request parameters is invalid, try again with correct request.'
+              Recoverable: false
+              Details: "Provided userId is not valid, Please check and provide valid Unique Id."
+    PaymentCardByIdNotFoundError:
+      value:
+        Errors:
+          Error:
+            - Source: 'CARBON CALCULATOR EXPERIENCE'
+              ReasonCode: PAYMENT_CARD_NOT_FOUND
+              Description: >-
+                'Payment Card Id is not Identified.'
+              Recoverable: false
+              Details: 'We cannot find the payment card which you are using to access this service. Kindly register your account or contact your Mastercard associate if you have already registered with us earlier.'
+    PaymentCardAlreadyInTerminationError:
+      value:
+        Errors:
+          Error:
+            - Source: 'CARBON CALCULATOR EXPERIENCE'
+              ReasonCode: PAYMENT_CARD_ALREADY_IN_TERMINATION
+              Description: >-
+                Payment card termination is already in progress.
+              Recoverable: false
+              Details: ''
+    ServiceProviderICAValidationError:
+      value:
+        Errors:
+          Error:
+            - Source: CARBON CALCULATOR EXPERIENCE
+              ReasonCode: 'SERVICE_PROVIDER_ICA_VALIDATION_FAILED'
+              Description: 'ICA Validation of Service Provider failed.'
+              Recoverable: false
+              Details: ''
     UserIDs:
       value:
         - 4ba581a55-bcea-4c3e-8e0f-9b4726e5e6d3

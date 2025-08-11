@@ -15,10 +15,12 @@
 	<description>carbon calculator experience reference application</description>
 	<properties>
 		<java.version>17</java.version>
+		<tomcat.version>11.0.12</tomcat.version>
+		<json-smart>2.6.0</json-smart>
 		<okhttp-version>4.12.0</okhttp-version>
-		<commons-lang3-version>3.11</commons-lang3-version>
+		<commons-lang3-version>3.19.0</commons-lang3-version>
 		<oauth1-signer-version>1.5.0</oauth1-signer-version>
-		<client-encryption-version>1.5.0</client-encryption-version>
+		<client-encryption-version>1.7.0</client-encryption-version>
 		<junit-version>4.13.1</junit-version>
 		<gson-version>2.11.0</gson-version>
 		<gson-fire-version>1.8.5</gson-fire-version>
@@ -26,18 +28,20 @@
 		<javax-annotation-version>1.3.2</javax-annotation-version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<default.package>com.mastercard.developers.carbontracker</default.package>
-		<jackson-databind-nullable-version>0.2.1</jackson-databind-nullable-version>
+		<jackson-datatype-jsr310.version>2.17.2</jackson-datatype-jsr310.version>
 		<sonar.coverage.jacoco.xmlReportPaths>
 			${project.build.directory}/site/jacoco-merged-test-coverage-report/jacoco.xml, ${project.build.directory}/site/jacoco-test-coverage-report/jacoco.xml
 		</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.coverage.exclusions>
-		  **/CarbonTrackerApplication.java,
-		  **/com/mastercard/developers/carbontracker/configuration/*,
-		  **/com/mastercard/developers/carbontracker/exception/*,
-		  **/com/mastercard/developers/carbontracker/util/*,
-		  **/com/mastercard/developers/carbontracker/usecases/*,
-		  **/com/mastercard/developers/carbontracker/service/impl/UserRegistrationServiceImpl.java,
-		  **/com/mastercard/developers/carbontracker/service/impl/UpdateUserServiceImpl.java
+			**/CarbonTrackerApplication.java,
+			**/com/mastercard/developers/carbontracker/configuration/*,
+			**/com/mastercard/developers/carbontracker/exception/*,
+			**/com/mastercard/developers/carbontracker/util/*,
+			**/com/mastercard/developers/carbontracker/usecases/*,
+			**/com/mastercard/developers/carbontracker/service/impl/UserRegistrationServiceImpl.java,
+			**/com/mastercard/developers/carbontracker/service/impl/UpdateUserServiceImpl.java,
+			**/com/mastercard/developers/carbontracker/service/impl/BatchPaymentCardRegistrationServiceImpl.java
+
 		</sonar.coverage.exclusions>
 
 	</properties>
@@ -45,6 +49,41 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+				<exclusion>
+					<artifactId>logback-classic</artifactId>
+					<groupId>ch.qos.logback</groupId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-json</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- Add Apache Tomcat 10.1.47 -->
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-core</artifactId>
+			<version>${tomcat.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-annotations-api</artifactId>
+			<version>${tomcat.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-el</artifactId>
+			<version>${tomcat.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-websocket</artifactId>
+			<version>${tomcat.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -100,6 +139,17 @@
 			<groupId>com.mastercard.developer</groupId>
 			<artifactId>client-encryption</artifactId>
 			<version>${client-encryption-version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>net.minidev</groupId>
+					<artifactId>json-smart</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>net.minidev</groupId>
+			<artifactId>json-smart</artifactId>
+			<version>${json-smart}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.swagger</groupId>
@@ -111,15 +161,33 @@
 			<artifactId>jsr305</artifactId>
 			<version>3.0.2</version>
 		</dependency>
+		<!-- Jackson databind start -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<scope>provided</scope>
+			<version>2.17.2</version>
 		</dependency>
 		<dependency>
-			<groupId>org.openapitools</groupId>
-			<artifactId>jackson-databind-nullable</artifactId>
-			<version>${jackson-databind-nullable-version}</version>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.17.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson-datatype-jsr310.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.17.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>2.10.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

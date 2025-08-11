@@ -5,6 +5,7 @@ import com.mastercard.developers.carbontracker.service.GetDashboardService;
 import com.mastercard.developers.carbontracker.service.IssuerService;
 import com.mastercard.developers.carbontracker.service.UpdateUserService;
 import com.mastercard.developers.carbontracker.service.UserRegistrationService;
+import com.mastercard.developers.carbontracker.service.BatchPaymentCardRegistrationService;
 import com.mastercard.developers.carbontracker.util.CreditCardGenerator;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.utility.RandomString;
@@ -20,6 +21,9 @@ import org.openapitools.client.model.UpdateUserProfile;
 import org.openapitools.client.model.UserName;
 import org.openapitools.client.model.UserProfile;
 import org.openapitools.client.model.UserReference;
+import org.openapitools.client.model.PaymentCardEnrolment;
+
+import org.openapitools.client.model.PaymentCard;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +44,7 @@ public class IssuerControllerUseCase {
 
     private final UpdateUserService updateUserService;
 
+    private  final BatchPaymentCardRegistrationService batchPaymentCardRegistrationService;
     @Value("${binRange}")
     private String binRange;
 
@@ -47,11 +52,12 @@ public class IssuerControllerUseCase {
     private String lang;
 
     @Autowired
-    public IssuerControllerUseCase(IssuerService issuerService, UserRegistrationService userRegistrationService, GetDashboardService getDashboardService, UpdateUserService updateUserService) {
+    public IssuerControllerUseCase(IssuerService issuerService, UserRegistrationService userRegistrationService, GetDashboardService getDashboardService, UpdateUserService updateUserService, BatchPaymentCardRegistrationService batchPaymentCardRegistrationService) {
         this.issuerService = issuerService;
         this.userRegistrationService = userRegistrationService;
         this.getDashboardService = getDashboardService;
         this.updateUserService = updateUserService;
+        this.batchPaymentCardRegistrationService = batchPaymentCardRegistrationService;
     }
 
     public void b2BCalls() {
@@ -64,6 +70,14 @@ public class IssuerControllerUseCase {
         getDashboardUrl(userId, lang);
         updateUser(userId);
         deleteUser(userId);
+
+        String userIdForMultiCard = userRegistration();
+        deleteUserMultiCard(userIdForMultiCard);
+
+        String userIdForBatchPaymentCard= userRegistration();
+        String paymentCardId = batchPaymentCardRegistration(userIdForBatchPaymentCard);
+        deletePaymentCard(paymentCardId);
+
 
     }
 
@@ -109,6 +123,22 @@ public class IssuerControllerUseCase {
         return userid;
     }
 
+
+    private String batchPaymentCardRegistration(String userId) {
+        String paymentCardId = null;
+        try {
+            log.info("Creating new payment card/cards");
+            List<PaymentCardEnrolment> paymentCardEnrolments = batchPaymentCardRegistrationService.batchRegisterPaymentCards(userId,getPaymentCardList() );
+            if (paymentCardEnrolments != null) {
+                paymentCardId = paymentCardEnrolments.get(0).getPaymentCardId();
+                log.info("Response for batch payment card registration is :{}", paymentCardEnrolments);
+            }
+        } catch (ServiceException ex) {
+            log.info("Exception occurred while creating a new user {}", ex.getServiceErrors());
+        }
+
+        return paymentCardId;
+    }
     public void getAggregateScores(String userId) {
         log.info("Fetching Aggregate Scores for given userId {}", userId);
         try {
@@ -152,6 +182,25 @@ public class IssuerControllerUseCase {
         }
     }
 
+    public void deleteUserMultiCard(String userId) {
+        log.info("Deleting user for given user {} ", userId);
+        try {
+            issuerService.deleteUserAndPaymentCards(userId);
+        } catch (ServiceException ex) {
+            log.info("Exception occurred while deleting the given multi-card user " + ex.getServiceErrors());
+        }
+    }
+
+
+    public void deletePaymentCard(String paymentCardId) {
+        log.info("Deleting payment card for given payment card {} ", paymentCardId);
+        try {
+            issuerService.deletePaymentCard(paymentCardId);
+        } catch (ServiceException ex) {
+            log.info("Exception occurred while deleting the given multi-card payment card id " + ex.getServiceErrors());
+        }
+    }
+
     public UserProfile getUserProfile() {
         UserProfile userProfile = new UserProfile();
 
@@ -178,7 +227,32 @@ public class IssuerControllerUseCase {
 
         return userProfile;
     }
+    public List<PaymentCard> getPaymentCardList() {
+        PaymentCard paymentCardOne = new PaymentCard();
+        paymentCardOne.setFpan("5123459018952753");
+        paymentCardOne.setCardBaseCurrency("USD");
+        paymentCardOne.setCardholderName("John Sena");
+        CardExpiry cardExpiry = new CardExpiry();
+        cardExpiry.setMonth("11");
+        cardExpiry.setYear("2030");
+        paymentCardOne.setExpiryInfo(cardExpiry);
+        paymentCardOne.setBillingAddress(getAddress());
+        paymentCardOne.setDefaultPaymentMethod(PaymentCard.DefaultPaymentMethodEnum.N);
 
+        PaymentCard paymentCardTwo = new PaymentCard();
+        paymentCardTwo.setFpan("5123456345480375");
+        paymentCardTwo.setCardBaseCurrency("USD");
+        paymentCardTwo.setCardholderName("Johnny");
+        CardExpiry cardExpiryNew = new CardExpiry();
+        cardExpiryNew.setMonth("11");
+        cardExpiryNew.setYear("2030");
+        paymentCardTwo.setExpiryInfo(cardExpiryNew);
+        paymentCardTwo.setDefaultPaymentMethod(PaymentCard.DefaultPaymentMethodEnum.N);
+        paymentCardTwo.setBillingAddress(getAddress());
+
+
+        return List.of(paymentCardOne, paymentCardTwo);
+    }
     public UpdateUserProfile getUpdateUserProfile() {
         UpdateUserProfile updateUserProfile = new UpdateUserProfile();
 
