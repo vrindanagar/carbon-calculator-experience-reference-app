@@ -117,7 +117,11 @@ See also:
    endpoint "/issuers/user-deletions" </br>
    Use this endpoint to delete user registered to Carbon Calculator Experience platform.
 
-6. **Update Issuer** <br/>
+6. **Update User** <br/>
+   endpoint "/issuers/users/{userid}" </br>
+   Use this endpoint to update enrolled user information onto Carbon Calculator Experience platform.
+
+7. **Update Issuer** <br/>
    endpoint "/issuers"<br/>
    Use this endpoint to update issuer details onboarded to Carbon Calculator Experience Platform.
    This endpoint is not supported when the Donate feature for your bank is disabled.
@@ -141,6 +145,7 @@ More details can be found [here](https://developer.mastercard.com/priceless-plan
           - GET {HOST}/cts/issuers/users/{userid}/aggregate-carbon-scores <br/>
           - GET {HOST}/cts/issuers <br/>
           - POST {HOST}/cts/issuers/users <br/>
+          - PUT {HOST}/cts/issuers/users/{userid} <br/>
           - PUT  {HOST}/cts/issuers <br/>
           - POST  {HOST}/cts/issuers/user-deletions <br/>
 
